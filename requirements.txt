@@ -1,0 +1,3 @@
+PyCryptodome==3.20.0
+smtplib==0.0.1
+tkinter==8.6
