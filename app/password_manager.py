@@ -1,30 +1,45 @@
-import sqlite3
-from app.encryption_module import AESCipher
-from app.config import DATA_DIR
+import json
+import os
+from app.encryption_module import encrypt_data, decrypt_data
 
 class PasswordManager:
-    def __init__(self, aes_key: bytes):
-        self.db_path = os.path.join(DATA_DIR, 'credentials.db')
-        self.cipher = AESCipher(aes_key)
-        self._init_db()
+    def __init__(self, aes_key, db_path):
+        self.aes_key = aes_key
+        self.db_path = db_path
+        if not os.path.exists(self.db_path):
+            self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS passwords (
-                    id INTEGER PRIMARY KEY,
-                    service TEXT,
-                    username TEXT,
-                    password TEXT
-                )
-            ''')
+        # Buat file baru jika belum ada
+        data = []
+        encrypted = encrypt_data(json.dumps(data), self.aes_key)
+        with open(self.db_path, 'wb') as f:
+            f.write(encrypted)
 
-    def add_password(self, service: str, username: str, password: str):
-        iv, encrypted_password = self.cipher.encrypt(password)
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO passwords (service, username, password)
-                VALUES (?, ?, ?)
-            ''', (service, username, encrypted_password.hex()))
+    def _load_data(self):
+        with open(self.db_path, 'rb') as f:
+            encrypted = f.read()
+        decrypted = decrypt_data(encrypted, self.aes_key)
+        return json.loads(decrypted)
+
+    def _save_data(self, data):
+        encrypted = encrypt_data(json.dumps(data), self.aes_key)
+        with open(self.db_path, 'wb') as f:
+            f.write(encrypted)
+
+    def add_entry(self, service, username, password):
+        data = self._load_data()
+        data.append({
+            "service": service,
+            "username": username,
+            "password": password
+        })
+        self._save_data(data)
+
+    def delete_entry(self, service):
+        data = self._load_data()
+        data = [entry for entry in data if entry["service"] != service]
+        self._save_data(data)
+
+    def get_all_entries(self):
+        return self._load_data()

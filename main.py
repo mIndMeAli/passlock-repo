@@ -1,5 +1,7 @@
-from ui.main_window import LoginWindow
+from ui.main_window import MainWindow
+import tkinter as tk
 
 if __name__ == "__main__":
-    app = LoginWindow()
-    app.mainloop()
+    root = tk.Tk()
+    app = MainWindow(root)
+    root.mainloop()
