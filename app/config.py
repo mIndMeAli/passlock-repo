@@ -1,16 +1,35 @@
+# app/config.py
+import sqlite3
 import os
 
-# Path direktori
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-KEYS_DIR = os.path.join(BASE_DIR, 'keys')
+DB_PATH = "data/credentials.db"
 
-# Pengaturan Email Pemulihan
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USERNAME = "your_email@gmail.com"
-SMTP_PASSWORD = "your_app_password"  # Gunakan App Password dari Google
-
-# Parameter Keamanan
-SALT = b"your_static_salt_here"  # Ganti dengan salt acak di produksi
-ITERATIONS = 100000  # Untuk PBKDF2
+def init_db():
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Tabel users
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            salt BLOB NOT NULL,
+            hashed_password TEXT NOT NULL,
+            aes_key BLOB NOT NULL
+        )
+    ''')
+    
+    # Tabel kredensial
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS credentials (
+            service TEXT,
+            username TEXT,
+            encrypted_password BLOB,
+            PRIMARY KEY (service, username)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()

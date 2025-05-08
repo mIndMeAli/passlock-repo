@@ -1,5 +1,6 @@
-from ui.main_window import LoginWindow
+# main.py
+from ui.auth_windows import AuthWindow
 
 if __name__ == "__main__":
-    app = LoginWindow()
+    app = AuthWindow()
     app.mainloop()
