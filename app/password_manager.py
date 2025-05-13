@@ -1,45 +1,52 @@
-import json
+import sqlite3
 import os
-from app.encryption_module import encrypt_data, decrypt_data
+from app.encryption_module import encrypt_data, decrypt_data, get_aes_key
 
-class PasswordManager:
-    def __init__(self, aes_key, db_path):
-        self.aes_key = aes_key
-        self.db_path = db_path
-        if not os.path.exists(self.db_path):
-            self._init_db()
+DB_PATH = "data/credentials.db"
 
-    def _init_db(self):
-        # Buat file baru jika belum ada
-        data = []
-        encrypted = encrypt_data(json.dumps(data), self.aes_key)
-        with open(self.db_path, 'wb') as f:
-            f.write(encrypted)
+def initialize_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS credentials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                service TEXT,
+                username TEXT,
+                password TEXT
+            )
+        """)
+        conn.commit()
 
-    def _load_data(self):
-        with open(self.db_path, 'rb') as f:
-            encrypted = f.read()
-        decrypted = decrypt_data(encrypted, self.aes_key)
-        return json.loads(decrypted)
+def add_credential(service: str, username: str, password: str, master_password: str):
+    key = get_aes_key(master_password)
+    encrypted_username = encrypt_data(username, key)
+    encrypted_password = encrypt_data(password, key)
+    encrypted_service = encrypt_data(service, key)  # Kalau mau service juga dienkripsi
 
-    def _save_data(self, data):
-        encrypted = encrypt_data(json.dumps(data), self.aes_key)
-        with open(self.db_path, 'wb') as f:
-            f.write(encrypted)
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO credentials (service, username, password) VALUES (?, ?, ?)",
+                       (encrypted_service, encrypted_username, encrypted_password))
+        conn.commit()
+def get_all_accounts(master_password: str):
+    """Mengambil dan mendekripsi semua akun dari database"""
+    key = get_aes_key(master_password)
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
 
-    def add_entry(self, service, username, password):
-        data = self._load_data()
-        data.append({
-            "service": service,
-            "username": username,
-            "password": password
-        })
-        self._save_data(data)
+    cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, service TEXT, username TEXT, password TEXT)")
+    cursor.execute("SELECT service, username, password FROM accounts")
+    rows = cursor.fetchall()
+    conn.close()
 
-    def delete_entry(self, service):
-        data = self._load_data()
-        data = [entry for entry in data if entry["service"] != service]
-        self._save_data(data)
+    decrypted_accounts = []
+    for service, encrypted_username, encrypted_password in rows:
+        try:
+            username = decrypt_data(encrypted_username, key)
+            password = decrypt_data(encrypted_password, key)
+            decrypted_accounts.append((service, username, password))
+        except Exception as e:
+            print(f"Error decrypting account for {service}: {e}")
 
-    def get_all_entries(self):
-        return self._load_data()
+    return decrypted_accounts

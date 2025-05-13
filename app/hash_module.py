@@ -16,7 +16,7 @@ def save_hashed_password(password: str):
     with open(HASH_FILE, 'w') as f:
         f.write(hashed)
 
-def verify_password(input_password: str) -> bool:
+def verify_master_password(input_password: str) -> bool:
     """Memverifikasi password pengguna dengan hash tersimpan"""
     if not os.path.exists(HASH_FILE):
         return False  # belum ada password tersimpan

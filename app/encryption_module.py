@@ -1,45 +1,27 @@
 from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
+import hashlib
 import base64
 import os
 
-KEY_FILE = "keys/aes.key"
+BLOCK_SIZE = 16  # AES block size
 
-def generate_key():
-    """Generate dan simpan kunci AES 256-bit"""
-    key = get_random_bytes(32)  # AES-256
-    os.makedirs(os.path.dirname(KEY_FILE), exist_ok=True)
-    with open(KEY_FILE, 'wb') as f:
-        f.write(key)
+def get_aes_key(master_password: str) -> bytes:
+    """Menghasilkan kunci AES dari hash SHA-256 master password"""
+    return hashlib.sha256(master_password.encode()).digest()  # 32 bytes
 
-def load_key():
-    """Muat kunci AES dari file"""
-    if not os.path.exists(KEY_FILE):
-        generate_key()
-    with open(KEY_FILE, 'rb') as f:
-        return f.read()
-
-def pad(s):
-    """Pad data agar panjangnya kelipatan 16 (AES block size)"""
-    return s + (16 - len(s) % 16) * chr(16 - len(s) % 16)
-
-def unpad(s):
-    """Hapus padding dari hasil dekripsi"""
-    return s[:-ord(s[len(s) - 1:])]
-
-def encrypt(plain_text: str) -> str:
-    key = load_key()
-    cipher = AES.new(key, AES.MODE_CBC)
-    ct_bytes = cipher.encrypt(pad(plain_text).encode('utf-8'))
-    iv = base64.b64encode(cipher.iv).decode('utf-8')
-    ct = base64.b64encode(ct_bytes).decode('utf-8')
-    return f"{iv}:{ct}"
-
-def decrypt(encrypted_text: str) -> str:
-    key = load_key()
-    iv, ct = encrypted_text.split(":")
-    iv = base64.b64decode(iv)
-    ct = base64.b64decode(ct)
+def encrypt_data(plain_text: str, key: bytes) -> str:
+    """Mengenkripsi teks dengan AES dan mengembalikan base64 string"""
+    iv = os.urandom(BLOCK_SIZE)  # IV harus random tiap enkripsi
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    plain = cipher.decrypt(ct).decode('utf-8')
-    return unpad(plain)
+    encrypted = cipher.encrypt(pad(plain_text.encode(), BLOCK_SIZE))
+    return base64.b64encode(iv + encrypted).decode()
+
+def decrypt_data(encrypted_base64: str, key: bytes) -> str:
+    """Mendekripsi base64 string menggunakan AES dan kunci"""
+    raw = base64.b64decode(encrypted_base64)
+    iv = raw[:BLOCK_SIZE]
+    encrypted = raw[BLOCK_SIZE:]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted = unpad(cipher.decrypt(encrypted), BLOCK_SIZE)
+    return decrypted.decode()
