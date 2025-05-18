@@ -1,3 +1,4 @@
+#app/password_manager.py
 import sqlite3
 import os
 from app.encryption_module import encrypt_data, decrypt_data, get_aes_key
@@ -35,17 +36,19 @@ def get_all_accounts(master_password: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, service TEXT, username TEXT, password TEXT)")
-    cursor.execute("SELECT service, username, password FROM accounts")
+    cursor.execute("CREATE TABLE IF NOT EXISTS credentials (id INTEGER PRIMARY KEY AUTOINCREMENT, service TEXT, username TEXT, password TEXT)")
+    cursor.execute("SELECT service, username, password FROM credentials")
     rows = cursor.fetchall()
     conn.close()
 
     decrypted_accounts = []
-    for service, encrypted_username, encrypted_password in rows:
+    for encrypted_service, encrypted_username, encrypted_password in rows:
         try:
+            service = decrypt_data(encrypted_service, key)
             username = decrypt_data(encrypted_username, key)
             password = decrypt_data(encrypted_password, key)
-            decrypted_accounts.append((service, username, password))
+            decrypted_accounts.append((service, username, encrypted_password))
+            
         except Exception as e:
             print(f"Error decrypting account for {service}: {e}")
 
