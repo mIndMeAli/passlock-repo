@@ -57,8 +57,11 @@ PassLockPro/
 │   └── access\_log.txt
 ├── main.py
 ├── requirements.txt
+├── generate_master.py
+├── generate_recovery.py
+├── master_password.hash
+├──
 └── README.md
-
 ````
 
 ---
