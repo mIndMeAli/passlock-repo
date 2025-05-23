@@ -79,8 +79,10 @@ class MainWindow:
                 command=self.show_stored_accounts).pack(pady=5)
 
     def show_stored_accounts(self):
-        """Menampilkan akun tersimpan"""
-        accounts = get_all_accounts(self.master_password)
+    
+        from app.password_manager import get_all_accounts_encrypted, decrypt_single_account
+
+        accounts = get_all_accounts_encrypted()
 
         if not accounts:
             messagebox.showinfo("Data Kosong", "Belum ada akun yang tersimpan.")
@@ -88,53 +90,88 @@ class MainWindow:
 
         window = tk.Toplevel(self.root)
         window.title("Akun Tersimpan")
-        
+
         main_frame = ttk.Frame(window)
         main_frame.pack(fill='both', expand=True, padx=10, pady=10)
 
         # Header
-        headers = ["Layanan", "Username", "Password"]
+        headers = ["Layanan (Enkripsi)", "Username (Enkripsi)", "Password (Enkripsi)", "Aksi"]
         for col, header in enumerate(headers):
-            ttk.Label(main_frame, 
-                    text=header, 
+            ttk.Label(main_frame,
+                    text=header,
                     font=('Helvetica', 10, 'bold'),
                     background='#e0e0e0').grid(
-                        row=0, 
-                        column=col, 
-                        padx=5, 
-                        pady=5, 
+                        row=0,
+                        column=col,
+                        padx=5,
+                        pady=5,
                         sticky='ew'
                     )
 
         # Konten
-        for row, (service, username, encrypted_password) in enumerate(accounts, start=1):
+        for row, (id, service, username, encrypted_password) in enumerate(accounts, start=1):
             bg_color = '#f0f0f0' if row % 2 == 0 else 'white'
-            
-            ttk.Label(main_frame, 
-                    text=service, 
+
+            ttk.Label(main_frame,
+                    text=service,
                     background=bg_color).grid(
-                        row=row, 
-                        column=0, 
-                        padx=5, 
-                        pady=2, 
-                        sticky='w'
-                    )
-            
-            ttk.Label(main_frame, 
-                    text=username, 
-                    background=bg_color).grid(
-                        row=row, 
-                        column=1, 
-                        padx=5, 
-                        pady=2, 
+                        row=row,
+                        column=0,
+                        padx=5,
+                        pady=2,
                         sticky='w'
                     )
 
-            self._create_password_widget(main_frame, row, encrypted_password, bg_color)
+            ttk.Label(main_frame,
+                    text=username,
+                    background=bg_color).grid(
+                        row=row,
+                        column=1,
+                        padx=5,
+                        pady=2,
+                        sticky='w'
+                    )
+
+            ttk.Label(main_frame,
+                    text=encrypted_password,
+                    background=bg_color).grid(
+                        row=row,
+                        column=2,
+                        padx=5,
+                        pady=2,
+                        sticky='w'
+                    )
+
+            # Tombol ikon mata untuk dekripsi
+            btn = ttk.Button(main_frame, text="👁️", width=3, command=lambda s=service, u=username, p=encrypted_password: self._decrypt_popup(s, u, p))
+            btn.grid(row=row, column=3, padx=5, pady=2)
 
         # Konfigurasi grid
-        for col in range(3):
+        for col in range(4):
             main_frame.grid_columnconfigure(col, weight=1)
+
+    def _decrypt_popup(self, encrypted_service, encrypted_username, encrypted_password):
+        """Menampilkan popup input master password untuk dekripsi"""
+        popup = tk.Toplevel(self.root)
+        popup.title("Dekripsi Akun")
+        popup.geometry("300x150")
+
+        tk.Label(popup, text="Masukkan Master Password:").pack(pady=10)
+        entry = tk.Entry(popup, show="*")
+        entry.pack(pady=5)
+
+        def handle_decrypt():
+            from app.password_manager import decrypt_single_account
+            master_password = entry.get()
+            try:
+                service, username, password = decrypt_single_account(encrypted_service, encrypted_username, encrypted_password, master_password)
+                messagebox.showinfo("Hasil Dekripsi", f"Layanan: {service}\nUsername: {username}\nPassword: {password}")
+                popup.destroy()
+            except Exception as e:
+                messagebox.showerror("Gagal", f"Dekripsi gagal: {str(e)}")
+
+        tk.Button(popup, text="Dekripsi", command=handle_decrypt).pack(pady=10)
+
 
     def _create_password_widget(self, parent, row, encrypted_password, bg_color):
         """Membuat widget password dengan toggle"""
@@ -191,10 +228,10 @@ class MainWindow:
             self.recovery_code = str(random.randint(100000, 999999))
             
             # Konfigurasi Twilio (Ganti dengan credential Anda)
-            ACCOUNT_SID = 'ubah_akun_sid_anda'
-            AUTH_TOKEN = 'ubah_auth_token_anda'
-            TWILIO_NUMBER = 'ubah_nomor_twilio_anda'
-            TARGET_NUMBER = 'ubah_nomor_target_anda'
+            ACCOUNT_SID = '00aa11bb22cc33dd44ee55ff66'
+            AUTH_TOKEN = '00aa11bb22cc33dd44ee55ff66'
+            TWILIO_NUMBER = '+12345678910'
+            TARGET_NUMBER = '+628123456789'
             
             client = Client(ACCOUNT_SID, AUTH_TOKEN)
             
