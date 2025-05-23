@@ -30,6 +30,7 @@ def add_credential(service: str, username: str, password: str, master_password: 
         cursor.execute("INSERT INTO credentials (service, username, password) VALUES (?, ?, ?)",
                        (encrypted_service, encrypted_username, encrypted_password))
         conn.commit()
+
 def get_all_accounts(master_password: str):
     """Mengambil dan mendekripsi semua akun dari database"""
     key = get_aes_key(master_password)
@@ -47,9 +48,27 @@ def get_all_accounts(master_password: str):
             service = decrypt_data(encrypted_service, key)
             username = decrypt_data(encrypted_username, key)
             password = decrypt_data(encrypted_password, key)
-            decrypted_accounts.append((service, username, encrypted_password))
-            
+            decrypted_accounts.append((service, username, password))
         except Exception as e:
-            print(f"Error decrypting account for {service}: {e}")
+            print(f"Error decrypting account: {e}")
 
     return decrypted_accounts
+
+def get_all_accounts_encrypted():
+    """Mengambil semua data akun tanpa dekripsi (untuk ditampilkan dengan ikon mata)"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("CREATE TABLE IF NOT EXISTS credentials (id INTEGER PRIMARY KEY AUTOINCREMENT, service TEXT, username TEXT, password TEXT)")
+    cursor.execute("SELECT id, service, username, password FROM credentials")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def decrypt_single_account(encrypted_service, encrypted_username, encrypted_password, master_password):
+    """Mendekripsi satu entri akun dengan kunci master yang dimasukkan"""
+    key = get_aes_key(master_password)
+    service = decrypt_data(encrypted_service, key)
+    username = decrypt_data(encrypted_username, key)
+    password = decrypt_data(encrypted_password, key)
+    return service, username, password
