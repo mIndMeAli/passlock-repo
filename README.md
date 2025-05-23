@@ -60,7 +60,6 @@ PassLockPro/
 ├── generate_master.py
 ├── generate_recovery.py
 ├── master_password.hash
-├──
 └── README.md
 ````
 
