@@ -86,21 +86,3 @@ PassLockPro/
    ```
 
 ---
-
-## ⚠️ Catatan Penting
-
-* File `config.ini` untuk email **jangan dipush ke publik**, karena berisi informasi kredensial.
-* Aplikasi hanya menyimpan data **secara lokal**, tidak terhubung ke internet/cloud.
-
----
-
-## 📜 Lisensi
-
-MIT License © 2025 – Rey & Team
-
-```
-
----
-
-Kalau kamu ingin aku bantu juga membuat versi bahasa Inggris atau template badge GitHub (Build, Python Version, dsb.), tinggal bilang aja!
-```
